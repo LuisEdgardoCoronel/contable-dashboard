@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { formatearFecha, formatearFechaLarga, formatearMes } from './fechas';
+import { formatearFecha, formatearFechaLarga, formatearMes, formatearMesCorto } from './fechas';
 
 describe('formatearFecha', () => {
   it('formatea YYYY-MM-DD como DD/MM/AAAA', () => {
@@ -47,5 +47,17 @@ describe('formatearMes', () => {
   it('devuelve el valor tal cual si no es YYYY-MM', () => {
     expect(formatearMes('2026')).toBe('2026');
     expect(formatearMes('2026-00')).toBe('2026-00');
+  });
+});
+
+describe('formatearMesCorto', () => {
+  it('abrevia el mes a tres letras', () => {
+    expect(formatearMesCorto('2026-06')).toBe('jun 2026');
+    expect(formatearMesCorto('2025-09')).toBe('sep 2025');
+  });
+
+  it('devuelve el valor tal cual si no es YYYY-MM', () => {
+    expect(formatearMesCorto('2026-13')).toBe('2026-13');
+    expect(formatearMesCorto('')).toBe('');
   });
 });

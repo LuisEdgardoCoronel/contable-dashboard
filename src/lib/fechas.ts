@@ -49,3 +49,12 @@ export function formatearMes(mes: string | null | undefined): string {
   if (!m || !nombre) return mes;
   return `${nombre} ${m[1]}`;
 }
+
+/** `2026-06` → `jun 2026` (eje de los gráficos). */
+export function formatearMesCorto(mes: string | null | undefined): string {
+  if (!mes) return '';
+  const m = MES.exec(mes);
+  const nombre = m && nombreMes(m[2]);
+  if (!m || !nombre) return mes;
+  return `${nombre.slice(0, 3)} ${m[1]}`;
+}
