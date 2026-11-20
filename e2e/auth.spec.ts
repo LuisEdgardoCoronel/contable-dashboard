@@ -1,7 +1,8 @@
 import { RUTA_SESION_ADMIN } from './env';
 import { COOKIE_NAME, env, expect, jwtFalso, loguear, test } from './fixtures';
 
-// Rate limit: los tests de "login por la UI" usan 4 intentos y global-setup 1 (5/min).
+// Rate limit: los tests de "login por la UI" usan 4 intentos, global-setup 1 y el registro
+// exitoso 1 (6 por corrida; con LOGIN_RATE_LIMIT en el default de 5, la API da 429).
 // No agregar logins: reusar RUTA_SESION_ADMIN.
 
 async function cookieDeSesion(page: import('@playwright/test').Page) {

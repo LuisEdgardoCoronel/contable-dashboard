@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
@@ -45,7 +46,7 @@ export function LoginForm({ next }: { next?: string }) {
         <CardTitle className="text-xl">Ingresá al panel</CardTitle>
         <CardDescription>Usá tu cuenta de contador del estudio.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
@@ -70,6 +71,12 @@ export function LoginForm({ next }: { next?: string }) {
             {enviando ? 'Ingresando…' : 'Ingresar'}
           </Button>
         </form>
+        <p className="text-center text-sm text-muted-foreground">
+          ¿No tenés cuenta?{' '}
+          <Link href="/registro" className="font-medium text-foreground underline underline-offset-4">
+            Creá una
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

@@ -4,7 +4,7 @@ import { asegurarCarpetaAuth, leerEnv, MENSAJE_429, RUTA_SESION_ADMIN } from './
 
 // Corre una vez, después de levantar el webServer:
 // 1. valida .env.test y que la API responda;
-// 2. loguea al admin de demo por el route handler del dashboard (1 de los 5
+// 2. loguea al admin de demo por el route handler del dashboard (1 de los 6
 //    intentos por minuto) y guarda la sesión para los tests que no prueban el login.
 export default async function globalSetup(config: FullConfig) {
   const env = leerEnv();

@@ -95,7 +95,8 @@ export default async function InicioPage({ searchParams }: PageProps<'/'>) {
             valor={vencimientos.vencidos}
             detalle="Sin presentar y con la fecha pasada"
             marca="bg-estado-vencido"
-            destacada
+            // En rojo solo si hay al menos uno; con 0, estilo neutro.
+            destacada={vencimientos.vencidos > 0}
           />
           <Tarjeta
             id="presentados"
@@ -170,6 +171,7 @@ function Tarjeta({
   return (
     <Card
       data-testid={`tarjeta-${id}`}
+      data-destacada={destacada || undefined}
       className={cn(destacada && 'bg-destructive/5 ring-2 ring-destructive/60')}
     >
       <CardHeader>

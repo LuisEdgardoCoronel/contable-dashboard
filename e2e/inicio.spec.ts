@@ -70,6 +70,10 @@ test('las tarjetas muestran los totales de la API, con la fecha de corte y el ra
   );
   await expect(valor(page, 'pendientes')).toHaveText(String(api.vencimientos.pendientes));
   await expect(valor(page, 'vencidos')).toHaveText(String(api.vencimientos.vencidos));
+  // Con al menos un vencido, la tarjeta va en rojo (el caso 0 lo cubre registro.spec).
+  if (api.vencimientos.vencidos > 0) {
+    await expect(page.getByTestId('tarjeta-vencidos')).toHaveAttribute('data-destacada', 'true');
+  }
   await expect(valor(page, 'presentados')).toHaveText(String(api.vencimientos.presentados));
   await expect(valor(page, 'proximos')).toHaveText(String(api.vencimientos.proximos30Dias));
 

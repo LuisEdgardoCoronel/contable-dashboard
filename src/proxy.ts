@@ -9,9 +9,10 @@ import { rutaSegura } from '@/lib/auth/ruta-segura';
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const haySesion = tokenVigente(request.cookies.get(COOKIE_NAME)?.value);
-  const esLogin = pathname === '/login';
+  // Login y registro: públicas, pero con sesión no tienen sentido.
+  const esPublica = pathname === '/login' || pathname === '/registro';
 
-  if (esLogin) {
+  if (esPublica) {
     if (!haySesion) return NextResponse.next();
     const destino = rutaSegura(request.nextUrl.searchParams.get('next'));
     return NextResponse.redirect(new URL(destino, request.url));
