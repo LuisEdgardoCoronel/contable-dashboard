@@ -5,7 +5,6 @@ import { GraficoPorImpuesto, GraficoPorMes } from '@/components/inicio/graficos'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApiError, apiFetch } from '@/lib/api/client';
 import type { Estadisticas } from '@/lib/api/types';
-import { getPerfil } from '@/lib/auth/session';
 import {
   datosPorImpuesto,
   datosPorMes,
@@ -38,13 +37,13 @@ async function cargar(rango: RangoPedido): Promise<Resultado> {
 
 export default async function InicioPage({ searchParams }: PageProps<'/'>) {
   const pedido = leerRango(await searchParams);
-  // getPerfil está en cache(): es la misma llamada que hizo el layout.
-  const [{ nombre }, resultado] = await Promise.all([getPerfil(), cargar(pedido)]);
+  // El saludo ("Hola, {nombre}") está en la barra del layout.
+  const resultado = await cargar(pedido);
 
   if (!resultado.ok) {
     return (
       <section className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold">Hola, {nombre}</h1>
+        <h1 className="text-2xl font-semibold">Inicio</h1>
         <FormularioRango desde={pedido.desde} hasta={pedido.hasta} />
         <div
           role="alert"
@@ -67,7 +66,7 @@ export default async function InicioPage({ searchParams }: PageProps<'/'>) {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Hola, {nombre}</h1>
+        <h1 className="text-2xl font-semibold">Inicio</h1>
         <p className="text-sm text-muted-foreground" data-testid="fecha-corte">
           Datos al {formatearFechaLarga(hoy)}
         </p>

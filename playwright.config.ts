@@ -12,7 +12,7 @@ const PUERTO = 3001;
 
 export default defineConfig({
   testDir: './e2e',
-  // La API limita el login a LOGIN_RATE_LIMIT/min por IP (la suite usa 6): nada en paralelo y sin reintentos,
+  // La API limita el login a LOGIN_RATE_LIMIT/min por IP (la suite usa 7): nada en paralelo y sin reintentos,
   // que gastarían intentos.
   workers: 1,
   fullyParallel: false,

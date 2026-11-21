@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+
 import { test as base, expect, type Page, type Response } from '@playwright/test';
+
+import { digitoVerificador } from '../src/lib/cuit';
 
 import { leerEnv, MENSAJE_429 } from './env';
 
@@ -52,4 +56,74 @@ export function jwtFalso(expEnSegundos: number): string {
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
   const exp = Math.floor(Date.now() / 1000) + expEnSegundos;
   return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'no-existe', rol: 'admin', exp })}.firma-invalida`;
+}
+
+/** Token de una sesión guardada por global-setup (para llamar a la API desde Node). */
+export function tokenDeSesion(ruta: string): string {
+  const estado = JSON.parse(readFileSync(ruta, 'utf8')) as {
+    cookies: { name: string; value: string }[];
+  };
+  const cookie = estado.cookies.find((c) => c.name === COOKIE_NAME);
+  if (!cookie) throw new Error(`No está la cookie ${COOKIE_NAME} en ${ruta}`);
+  return cookie.value;
+}
+
+/** Sufijo único para los datos que crea cada test (no depender del orden ni de corridas previas). */
+export function sufijoUnico(): string {
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** CUIT aleatorio con dígito verificador válido (misma regla que la API). */
+export function cuitAleatorio(): string {
+  for (;;) {
+    const primeros = `30${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`;
+    const dv = digitoVerificador(primeros);
+    if (dv !== null) return `${primeros}${dv}`;
+  }
+}
+
+export interface ClienteApi {
+  id: string;
+  razonSocial: string;
+  cuit: string;
+  email: string;
+  telefono: string | null;
+  condicionIVA: string;
+  activo: boolean;
+  usuarioId: string | null;
+}
+
+/** Llama a la API desde Node (nunca desde el navegador) con el token dado. */
+export async function api<T>(
+  token: string,
+  ruta: string,
+  opciones: { method?: string; body?: unknown } = {},
+): Promise<T> {
+  const r = await fetch(new URL(ruta, env.E2E_API_URL), {
+    method: opciones.method ?? 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(opciones.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    body: opciones.body === undefined ? undefined : JSON.stringify(opciones.body),
+  });
+  if (!r.ok) throw new Error(`${opciones.method ?? 'GET'} ${ruta} → ${r.status}: ${await r.text()}`);
+  return (r.status === 204 ? undefined : await r.json()) as T;
+}
+
+/** Crea un cliente por la API, para preparar datos. Completa con valores válidos lo que falte. */
+export function crearClienteApi(
+  token: string,
+  datos: Partial<Pick<ClienteApi, 'razonSocial' | 'cuit' | 'email' | 'telefono' | 'condicionIVA'>> = {},
+): Promise<ClienteApi> {
+  return api<ClienteApi>(token, '/clientes', {
+    method: 'POST',
+    body: {
+      razonSocial: `E2E Cliente ${sufijoUnico()}`,
+      cuit: cuitAleatorio(),
+      email: 'contacto@example.com',
+      condicionIVA: 'monotributista',
+      ...datos,
+    },
+  });
 }

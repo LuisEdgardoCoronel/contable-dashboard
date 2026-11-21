@@ -1,9 +1,10 @@
 import { RUTA_SESION_ADMIN } from './env';
 import { COOKIE_NAME, env, expect, jwtFalso, loguear, test } from './fixtures';
 
-// Rate limit: los tests de "login por la UI" usan 4 intentos, global-setup 1 y el registro
-// exitoso 1 (6 por corrida; con LOGIN_RATE_LIMIT en el default de 5, la API da 429).
-// No agregar logins: reusar RUTA_SESION_ADMIN.
+// Rate limit: los tests de "login por la UI" usan 4 intentos, global-setup 2 (admin de demo
+// y admin propio) y el registro exitoso 1 (7 por corrida; con LOGIN_RATE_LIMIT en el default
+// de 5, la API da 429).
+// No agregar logins: reusar RUTA_SESION_ADMIN o RUTA_SESION_PROPIA.
 
 async function cookieDeSesion(page: import('@playwright/test').Page) {
   const cookies = await page.context().cookies();
@@ -39,7 +40,7 @@ test.describe('login por la UI', () => {
     await page.goto('/login');
     await loguear(page, env.E2E_ADMIN_EMAIL, env.E2E_ADMIN_PASSWORD);
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('heading', { name: `Hola, ${env.E2E_ADMIN_NOMBRE}` })).toBeVisible();
+    await expect(page.getByRole('banner').getByText(`Hola, ${env.E2E_ADMIN_NOMBRE}`)).toBeVisible();
 
     const cookie = await cookieDeSesion(page);
     expect(cookie).toBeDefined();
@@ -62,7 +63,7 @@ test.describe('login por la UI', () => {
   test('5. con ?next=//evil.com, después del login queda en /', async ({ page }) => {
     await page.goto('/login?next=//evil.com');
     await loguear(page, env.E2E_ADMIN_EMAIL, env.E2E_ADMIN_PASSWORD);
-    await expect(page.getByRole('heading', { name: /^Hola, / })).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/^Hola, /)).toBeVisible();
     const url = new URL(page.url());
     expect(url.origin).toBe('http://localhost:3001');
     expect(url.pathname).toBe('/');
@@ -110,7 +111,7 @@ test.describe('con sesión de admin', () => {
 
   test('7. "Cerrar sesión" borra la cookie y vuelve a /login', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /^Hola, / })).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/^Hola, /)).toBeVisible();
     await page.getByRole('button', { name: 'Cerrar sesión' }).click();
     await expect(page).toHaveURL(/\/login$/);
     expect(await cookieDeSesion(page)).toBeUndefined();
@@ -127,7 +128,7 @@ test.describe('con sesión de admin', () => {
     // El fixture automático hace este chequeo en TODOS los tests (incluidos los
     // de login por la UI). Acá recorremos panel → logout → login de forma explícita.
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: /^Hola, / })).toBeVisible();
+    await expect(page.getByRole('banner').getByText(/^Hola, /)).toBeVisible();
     await page.getByRole('button', { name: 'Cerrar sesión' }).click();
     await expect(page).toHaveURL(/\/login$/);
 

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { NavLinks } from '@/components/panel/nav-links';
 import { Button } from '@/components/ui/button';
 import { getPerfil } from '@/lib/auth/session';
 
@@ -15,10 +16,14 @@ export default async function PanelLayout({ children }: LayoutProps<'/'>) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-3">
+      <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b px-4 py-3 sm:px-6">
         <span className="font-semibold">Contable</span>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">{perfil.nombre}</span>
+        {/* En el celular, los links bajan a una segunda fila (order-last + w-full). */}
+        <nav aria-label="Principal" className="order-last w-full md:order-none md:w-auto">
+          <NavLinks />
+        </nav>
+        <div className="ml-auto flex min-w-0 items-center gap-3">
+          <span className="truncate text-sm text-muted-foreground">Hola, {perfil.nombre}</span>
           <form action="/api/auth/logout" method="post">
             <Button type="submit" variant="outline" size="sm">
               Cerrar sesión
@@ -26,7 +31,7 @@ export default async function PanelLayout({ children }: LayoutProps<'/'>) {
           </form>
         </div>
       </header>
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1 p-4 sm:p-6">{children}</main>
     </div>
   );
 }

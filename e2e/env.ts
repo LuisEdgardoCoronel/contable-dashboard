@@ -24,11 +24,13 @@ export function leerEnv(): Record<Clave, string> {
 
 export const MENSAJE_429 =
   'La API devolvió 429 (rate limit del login: LOGIN_RATE_LIMIT intentos por minuto por IP, default 5; ' +
-  'la suite usa 6, así que el default no alcanza). ' +
+  'la suite usa 7, así que el default no alcanza). ' +
   'Subí LOGIN_RATE_LIMIT en el .env de la API ' +
   '(p. ej. 100) y reiniciala.';
 
 export const RUTA_SESION_ADMIN = path.join(__dirname, '.auth', 'admin.json');
+/** Admin propio, registrado en cada corrida: lo usan los tests que crean o modifican clientes. */
+export const RUTA_SESION_PROPIA = path.join(__dirname, '.auth', 'admin-propio.json');
 
 export function asegurarCarpetaAuth() {
   mkdirSync(path.dirname(RUTA_SESION_ADMIN), { recursive: true });

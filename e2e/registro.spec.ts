@@ -49,7 +49,7 @@ test('registro exitoso: entra al panel con un estudio vacío', async ({ page }) 
   expect(cuerpo.sesion).toBe(true);
 
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { name: `Hola, ${nombre}` })).toBeVisible();
+  await expect(page.getByRole('banner').getByText(`Hola, ${nombre}`)).toBeVisible();
 
   const cookie = (await page.context().cookies()).find((c) => c.name === COOKIE_NAME);
   expect(cookie?.httpOnly).toBe(true);
@@ -59,6 +59,16 @@ test('registro exitoso: entra al panel con un estudio vacío', async ({ page }) 
   await expect(vencidos.getByTestId('valor')).toHaveText('0');
   await expect(vencidos).not.toHaveAttribute('data-destacada');
   await expect(page.getByText('No hay vencimientos en este rango')).toHaveCount(2);
+
+  // Estudio sin clientes: el listado invita a cargar el primero (sin sumar logins).
+  await page.getByRole('navigation', { name: 'Principal' }).getByRole('link', { name: 'Clientes' }).click();
+  await expect(page).toHaveURL(/\/clientes$/);
+  await expect(page.getByText('Todavía no cargaste clientes')).toBeVisible();
+  const vacio = page.getByRole('main').getByRole('link', { name: 'Nuevo cliente' });
+  // El botón de arriba y el del mensaje de vacío.
+  await expect(vacio).toHaveCount(2);
+  await vacio.last().click();
+  await expect(page).toHaveURL(/\/clientes\/nuevo$/);
 });
 
 test('un email ya registrado muestra "Ese email ya está registrado"', async ({ page }) => {

@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
-
 import type { Page } from '@playwright/test';
 
 import { RUTA_SESION_ADMIN } from './env';
-import { COOKIE_NAME, env, expect, test } from './fixtures';
+import { env, expect, test, tokenDeSesion } from './fixtures';
 
 // Reusa la sesión de global-setup: no gasta intentos del rate limit del login.
 test.use({ storageState: RUTA_SESION_ADMIN });
@@ -22,15 +20,6 @@ interface EstadisticasApi {
   porImpuesto: (Conteos & { impuesto: { nombre: string } })[];
 }
 
-function tokenDeSesion(): string {
-  const estado = JSON.parse(readFileSync(RUTA_SESION_ADMIN, 'utf8')) as {
-    cookies: { name: string; value: string }[];
-  };
-  const cookie = estado.cookies.find((c) => c.name === COOKIE_NAME);
-  if (!cookie) throw new Error(`No está la cookie ${COOKIE_NAME} en ${RUTA_SESION_ADMIN}`);
-  return cookie.value;
-}
-
 /**
  * Lo que devuelve la API, pedido desde Node (no desde el navegador). Los datos
  * de seed:demo dependen de la fecha de hoy, así que se comparan contra la API
@@ -39,7 +28,7 @@ function tokenDeSesion(): string {
 async function estadisticasDeLaApi(query: Record<string, string> = {}): Promise<EstadisticasApi> {
   const url = new URL('/estadisticas', env.E2E_API_URL);
   for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${tokenDeSesion()}` } });
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${tokenDeSesion(RUTA_SESION_ADMIN)}` } });
   if (!r.ok) throw new Error(`GET /estadisticas → ${r.status}`);
   return (await r.json()) as EstadisticasApi;
 }
