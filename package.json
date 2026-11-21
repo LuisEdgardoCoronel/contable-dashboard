@@ -10,7 +10,8 @@
     "types": "openapi-typescript http://localhost:3000/docs-json -o src/lib/api/schema.d.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "playwright test -c playwright.prod.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
