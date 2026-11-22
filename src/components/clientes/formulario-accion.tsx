@@ -3,9 +3,8 @@
 import { useActionState, type ReactNode } from 'react';
 
 import type { EstadoAccion } from '@/app/(panel)/clientes/actions';
+import { MensajeError } from '@/components/formularios/campo';
 import { Button } from '@/components/ui/button';
-
-import { MensajeError } from './campo';
 
 interface Props {
   /** `darDeBaja.bind(null, id)` o `reactivarCliente.bind(null, id)`. */

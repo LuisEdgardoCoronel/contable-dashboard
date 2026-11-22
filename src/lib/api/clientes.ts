@@ -2,7 +2,7 @@ import 'server-only';
 
 import { notFound } from 'next/navigation';
 
-import { esUuid } from '@/lib/clientes';
+import { esUuid } from '@/lib/paginacion';
 
 import { ApiError, apiFetch } from './client';
 import type { Cliente } from './types';

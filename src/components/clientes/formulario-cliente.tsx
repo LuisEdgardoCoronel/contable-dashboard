@@ -4,11 +4,10 @@ import Link from 'next/link';
 import { useActionState } from 'react';
 
 import type { EstadoCliente } from '@/app/(panel)/clientes/actions';
+import { ariaCampo, Campo, claseSelect, MensajeError } from '@/components/formularios/campo';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CONDICIONES_IVA, type DatosCliente } from '@/lib/clientes';
-
-import { ariaCampo, Campo, claseSelect, MensajeError } from './campo';
 
 interface Props {
   /** `crearCliente`, o `actualizarCliente.bind(null, id)`. */

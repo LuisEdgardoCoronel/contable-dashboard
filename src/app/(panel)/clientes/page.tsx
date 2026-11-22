@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { FiltrosClientes } from '@/components/clientes/filtros-clientes';
 import { EstadoBadge } from '@/components/clientes/estado-badge';
+import { Paginas } from '@/components/panel/paginas';
 import { buttonVariants } from '@/components/ui/button';
 import {
   Table,
@@ -14,7 +15,6 @@ import {
 import { apiFetch } from '@/lib/api/client';
 import type { Cliente, Paginado } from '@/lib/api/types';
 import {
-  calcularPaginacion,
   etiquetaCondicionIVA,
   hayFiltros,
   leerFiltrosClientes,
@@ -23,7 +23,6 @@ import {
   type FiltrosClientes as Filtros,
 } from '@/lib/clientes';
 import { formatearCuit } from '@/lib/cuit';
-import { cn } from '@/lib/utils';
 
 // Cache Components: cada página del panel lo declara (no se hereda del layout).
 export const instant = false;
@@ -74,7 +73,12 @@ export default async function ClientesPage({ searchParams }: PageProps<'/cliente
         <>
           <TablaClientes clientes={data} />
           <TarjetasClientes clientes={data} />
-          <Paginas filtros={filtros} total={total} />
+          <Paginas
+            pagina={filtros.pagina}
+            total={total}
+            urlPagina={(pagina) => urlClientes({ ...filtros, pagina })}
+            unidad={['cliente', 'clientes']}
+          />
         </>
       )}
     </section>
@@ -143,42 +147,6 @@ function TarjetasClientes({ clientes }: { clientes: Cliente[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-function Paginas({ filtros, total }: { filtros: Filtros; total: number }) {
-  const { totalPaginas, hayAnterior, haySiguiente } = calcularPaginacion(total, filtros.pagina);
-  return (
-    <nav aria-label="Paginación" className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-muted-foreground" data-testid="resumen-paginas">
-        Página {filtros.pagina} de {totalPaginas} · {total} {total === 1 ? 'cliente' : 'clientes'}
-      </p>
-      <div className="flex gap-2">
-        <LinkPagina href={hayAnterior ? urlClientes({ ...filtros, pagina: filtros.pagina - 1 }) : undefined}>
-          Anterior
-        </LinkPagina>
-        <LinkPagina href={haySiguiente ? urlClientes({ ...filtros, pagina: filtros.pagina + 1 }) : undefined}>
-          Siguiente
-        </LinkPagina>
-      </div>
-    </nav>
-  );
-}
-
-/** Sin `href`, se ve deshabilitado y no es un link. */
-function LinkPagina({ href, children }: { href?: string; children: string }) {
-  const clase = buttonVariants({ variant: 'outline', size: 'sm' });
-  if (!href) {
-    return (
-      <a aria-disabled="true" className={cn(clase, 'pointer-events-none opacity-50')}>
-        {children}
-      </a>
-    );
-  }
-  return (
-    <Link href={href} className={clase}>
-      {children}
-    </Link>
   );
 }
 

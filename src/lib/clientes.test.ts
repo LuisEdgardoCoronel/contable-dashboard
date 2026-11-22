@@ -3,14 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   bodyAcceso,
   bodyCliente,
-  calcularPaginacion,
-  esUuid,
   etiquetaCondicionIVA,
   hayFiltros,
   leerAviso,
-  leerCampos,
   leerFiltrosClientes,
-  MENSAJES,
+  MENSAJES_CLIENTE,
   queryClientes,
   urlClientes,
   validarAcceso,
@@ -57,16 +54,16 @@ describe('validarCliente', () => {
   it('límites de largo', () => {
     expect(validarCliente({ ...clienteOk, telefono: '1'.repeat(50) })).toEqual({});
     expect(validarCliente({ ...clienteOk, razonSocial: 'a'.repeat(256) }).razonSocial).toBe(
-      MENSAJES.razonSocialLarga,
+      MENSAJES_CLIENTE.razonSocialLarga,
     );
     expect(validarCliente({ ...clienteOk, email: `${'a'.repeat(250)}@x.com` }).email).toBe(
-      MENSAJES.email,
+      MENSAJES_CLIENTE.email,
     );
   });
 
   it('rechaza una condición IVA desconocida', () => {
     expect(validarCliente({ ...clienteOk, condicionIVA: 'otra' }).condicionIVA).toBe(
-      MENSAJES.condicionIVA,
+      MENSAJES_CLIENTE.condicionIVA,
     );
   });
 });
@@ -92,15 +89,15 @@ describe('validarAcceso y bodyAcceso', () => {
   });
 
   it('contraseña de 8 a 72 caracteres', () => {
-    expect(validarAcceso({ ...ok, password: '1234567' }).password).toBe(MENSAJES.password);
-    expect(validarAcceso({ ...ok, password: 'a'.repeat(73) }).password).toBe(MENSAJES.password);
+    expect(validarAcceso({ ...ok, password: '1234567' }).password).toBe(MENSAJES_CLIENTE.password);
+    expect(validarAcceso({ ...ok, password: 'a'.repeat(73) }).password).toBe(MENSAJES_CLIENTE.password);
     expect(validarAcceso({ ...ok, password: '12345678' })).toEqual({});
     expect(validarAcceso({ ...ok, password: 'a'.repeat(72) })).toEqual({});
   });
 
   it('email inválido y nombre largo', () => {
-    expect(validarAcceso({ ...ok, email: '' }).email).toBe(MENSAJES.email);
-    expect(validarAcceso({ ...ok, nombre: 'a'.repeat(256) }).nombre).toBe(MENSAJES.nombreLargo);
+    expect(validarAcceso({ ...ok, email: '' }).email).toBe(MENSAJES_CLIENTE.email);
+    expect(validarAcceso({ ...ok, nombre: 'a'.repeat(256) }).nombre).toBe(MENSAJES_CLIENTE.nombreLargo);
   });
 
   it('omite el nombre vacío y no recorta la contraseña', () => {
@@ -109,14 +106,6 @@ describe('validarAcceso y bodyAcceso', () => {
       password: ' con espacios ',
     });
     expect(bodyAcceso({ ...ok, nombre: ' María ' }).nombre).toBe('María');
-  });
-});
-
-describe('leerCampos', () => {
-  it('devuelve strings, con "" para lo ausente', () => {
-    const fd = new FormData();
-    fd.set('razonSocial', 'X');
-    expect(leerCampos(fd, ['razonSocial', 'cuit'])).toEqual({ razonSocial: 'X', cuit: '' });
   });
 });
 
@@ -194,35 +183,7 @@ describe('urlClientes', () => {
   });
 });
 
-describe('calcularPaginacion', () => {
-  it('sin resultados hay una sola página', () => {
-    expect(calcularPaginacion(0, 1)).toEqual({
-      totalPaginas: 1,
-      hayAnterior: false,
-      haySiguiente: false,
-    });
-  });
-
-  it('primera, del medio y última', () => {
-    expect(calcularPaginacion(41, 1)).toEqual({ totalPaginas: 3, hayAnterior: false, haySiguiente: true });
-    expect(calcularPaginacion(41, 2)).toEqual({ totalPaginas: 3, hayAnterior: true, haySiguiente: true });
-    expect(calcularPaginacion(41, 3)).toEqual({ totalPaginas: 3, hayAnterior: true, haySiguiente: false });
-  });
-
-  it('justo en el límite y fuera de rango', () => {
-    expect(calcularPaginacion(20, 1).totalPaginas).toBe(1);
-    expect(calcularPaginacion(21, 1).totalPaginas).toBe(2);
-    expect(calcularPaginacion(21, 9)).toEqual({ totalPaginas: 2, hayAnterior: true, haySiguiente: false });
-  });
-});
-
-describe('esUuid, leerAviso y etiquetaCondicionIVA', () => {
-  it('esUuid', () => {
-    expect(esUuid('3f2b8c1e-9a4d-4e2f-8b1a-0c9d8e7f6a5b')).toBe(true);
-    expect(esUuid('no-es-uuid')).toBe(false);
-    expect(esUuid('3f2b8c1e9a4d4e2f8b1a0c9d8e7f6a5b')).toBe(false);
-  });
-
+describe('leerAviso y etiquetaCondicionIVA', () => {
   it('leerAviso', () => {
     expect(leerAviso({ ok: 'creado' })).toBe('Cliente creado');
     expect(leerAviso({ ok: 'baja' })).toBe('Cliente dado de baja');

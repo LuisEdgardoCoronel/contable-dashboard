@@ -3,10 +3,9 @@
 import { useActionState } from 'react';
 
 import type { EstadoAcceso } from '@/app/(panel)/clientes/actions';
+import { ariaCampo, Campo, MensajeError } from '@/components/formularios/campo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
-import { ariaCampo, Campo, MensajeError } from './campo';
 
 interface Props {
   /** `crearAcceso.bind(null, id)`. */
