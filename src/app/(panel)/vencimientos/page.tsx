@@ -10,7 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { EstadoVencimiento } from '@/components/vencimientos/estado-vencimiento';
+import { BotonPresentar } from '@/components/vencimientos/boton-presentar';
+import { EstadoVencimiento, PresentadoTarde } from '@/components/vencimientos/estado-vencimiento';
 import { FiltrosVencimientos } from '@/components/vencimientos/filtros-vencimientos';
 import { Pestanas } from '@/components/vencimientos/pestanas';
 import { ApiError, apiFetch } from '@/lib/api/client';
@@ -26,10 +27,14 @@ import {
   hayFiltros,
   leerAvisoVencimiento,
   leerFiltrosVencimientos,
+  presentadoTarde,
+  sePuedePresentarEn,
   urlVencimientos,
   VACIO_PESTANA,
   type FiltrosVencimientos as Filtros,
 } from '@/lib/vencimientos';
+
+import { presentarDesdeListado } from './actions';
 
 // Cache Components: cada página del panel lo declara (no se hereda del layout).
 export const instant = false;
@@ -153,10 +158,13 @@ function Resultados({
     return <Vacio texto={VACIO_PESTANA[filtros.estado]} />;
   }
 
+  // En Vencidos, Pendientes y Próximos, cada fila se puede marcar como presentada
+  // y vuelve a este mismo listado. En las otras pestañas no hay botón.
+  const volverA = sePuedePresentarEn(filtros.estado) ? urlVencimientos(filtros) : undefined;
   return (
     <>
-      <TablaVencimientos vencimientos={data} />
-      <TarjetasVencimientos vencimientos={data} />
+      <TablaVencimientos vencimientos={data} volverA={volverA} />
+      <TarjetasVencimientos vencimientos={data} volverA={volverA} />
       <Paginas
         pagina={filtros.pagina}
         total={total}
@@ -167,7 +175,33 @@ function Resultados({
   );
 }
 
-function TablaVencimientos({ vencimientos }: { vencimientos: Vencimiento[] }) {
+interface PropsListado {
+  vencimientos: Vencimiento[];
+  /** Con valor, cada fila lleva "Marcar como presentado" y vuelve a esta URL. */
+  volverA?: string;
+}
+
+/** Botón de una fila: identifica al vencimiento para los lectores de pantalla. */
+function Presentar({ v, volverA }: { v: Vencimiento; volverA: string }) {
+  return (
+    <BotonPresentar
+      accion={presentarDesdeListado.bind(null, v.id, volverA)}
+      contexto={`${v.impuesto.nombre} ${formatearPeriodo(v.periodo)}, ${v.cliente.razonSocial}`}
+    />
+  );
+}
+
+/** El estado y, si se presentó después del vencimiento, "Tarde". */
+function Estado({ v }: { v: Vencimiento }) {
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      <EstadoVencimiento estado={v.estadoActual} />
+      {presentadoTarde(v) && <PresentadoTarde />}
+    </span>
+  );
+}
+
+function TablaVencimientos({ vencimientos, volverA }: PropsListado) {
   return (
     <div className="hidden rounded-lg border md:block">
       <Table>
@@ -179,6 +213,11 @@ function TablaVencimientos({ vencimientos }: { vencimientos: Vencimiento[] }) {
             <TableHead>Período</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Presentado el</TableHead>
+            {volverA && (
+              <TableHead>
+                <span className="sr-only">Acciones</span>
+              </TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -193,9 +232,14 @@ function TablaVencimientos({ vencimientos }: { vencimientos: Vencimiento[] }) {
               <TableCell>{v.impuesto.nombre}</TableCell>
               <TableCell>{formatearPeriodo(v.periodo)}</TableCell>
               <TableCell>
-                <EstadoVencimiento estado={v.estadoActual} />
+                <Estado v={v} />
               </TableCell>
               <TableCell className="tabular-nums">{formatearFecha(v.fechaPresentacion) || '—'}</TableCell>
+              {volverA && (
+                <TableCell>
+                  <Presentar v={v} volverA={volverA} />
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
@@ -205,7 +249,7 @@ function TablaVencimientos({ vencimientos }: { vencimientos: Vencimiento[] }) {
 }
 
 /** En el celular: una tarjeta por vencimiento, sin scroll horizontal. */
-function TarjetasVencimientos({ vencimientos }: { vencimientos: Vencimiento[] }) {
+function TarjetasVencimientos({ vencimientos, volverA }: PropsListado) {
   return (
     <ul data-testid="tarjetas-vencimientos" className="flex flex-col gap-3 md:hidden">
       {vencimientos.map((v) => (
@@ -214,7 +258,7 @@ function TarjetasVencimientos({ vencimientos }: { vencimientos: Vencimiento[] })
             <Link href={`/vencimientos/${v.id}`} className="font-medium break-words hover:underline">
               {v.impuesto.nombre} · {formatearPeriodo(v.periodo)}
             </Link>
-            <EstadoVencimiento estado={v.estadoActual} />
+            <Estado v={v} />
           </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
             <dt className="text-muted-foreground">Vence</dt>
@@ -224,6 +268,7 @@ function TarjetasVencimientos({ vencimientos }: { vencimientos: Vencimiento[] })
             <dt className="text-muted-foreground">Presentado</dt>
             <dd className="tabular-nums">{formatearFecha(v.fechaPresentacion) || '—'}</dd>
           </dl>
+          {volverA && <Presentar v={v} volverA={volverA} />}
         </li>
       ))}
     </ul>

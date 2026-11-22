@@ -9,7 +9,10 @@ import { hayErrores, leerCampos, type EstadoAccion, type EstadoFormulario } from
 import {
   bodyVencimiento,
   CAMPOS_VENCIMIENTO,
+  MENSAJES_VENCIMIENTO,
   normalizarNotas,
+  urlConAviso,
+  validarFechaVencimiento,
   validarNotas,
   validarPresentacion,
   validarVencimiento,
@@ -27,6 +30,7 @@ import {
 export type EstadoVencimientoForm = EstadoFormulario<CampoVencimiento>;
 export type EstadoPresentacion = EstadoFormulario<'fechaPresentacion'>;
 export type EstadoNotas = EstadoFormulario<'notas'>;
+export type EstadoFechaVencimiento = EstadoFormulario<'fechaVencimiento'>;
 
 // 409 del alta: "El cliente está dado de baja" va al cliente; "Ya existe un
 // vencimiento de ese impuesto para ese cliente y período", al período.
@@ -95,6 +99,22 @@ export async function marcarPresentado(
   alDetalle(id, 'presentado');
 }
 
+/**
+ * "Marcar como presentado" desde una fila del listado: con la fecha de hoy en
+ * Argentina, calculada acá. Vuelve al mismo listado (pestaña, filtros y página)
+ * con el aviso. `volverA` = `urlVencimientos(filtros)`, con `.bind` desde la página.
+ */
+export async function presentarDesdeListado(id: string, volverA: string): Promise<EstadoAccion> {
+  validarId(id);
+  try {
+    await actualizar(id, { estado: 'presentado', fechaPresentacion: hoyArgentina() });
+  } catch (e) {
+    // Un 404 (p. ej. borrado en otra pestaña) va en la fila: notFound() taparía todo el listado.
+    return fallo(estadoDeError(e, { en404: () => ({ mensaje: MENSAJES_VENCIMIENTO.noExiste }) }));
+  }
+  terminar(urlConAviso(volverA, 'presentado'));
+}
+
 // Sin campos: `useActionState` la llama igual con (estadoPrevio, formData).
 export async function volverAPendiente(id: string): Promise<EstadoAccion> {
   validarId(id);
@@ -120,6 +140,26 @@ export async function guardarNotas(id: string, _previo: EstadoNotas, formData: F
     return fallo({ ...estadoDeError<'notas'>(e), valores });
   }
   alDetalle(id, 'notas');
+}
+
+/** No toca `fechaPresentacion`; el `estadoActual` lo recalcula la API con la fecha nueva. */
+export async function cambiarFechaVencimiento(
+  id: string,
+  _previo: EstadoFechaVencimiento,
+  formData: FormData,
+): Promise<EstadoFechaVencimiento> {
+  validarId(id);
+  const { fechaVencimiento } = leerCampos(formData, ['fechaVencimiento']);
+  const valores = { fechaVencimiento };
+  const error = validarFechaVencimiento(fechaVencimiento);
+  if (error) return fallo({ errores: { fechaVencimiento: error }, valores });
+
+  try {
+    await actualizar(id, { fechaVencimiento: fechaVencimiento.trim() });
+  } catch (e) {
+    return fallo({ ...estadoDeError<'fechaVencimiento'>(e), valores });
+  }
+  alDetalle(id, 'fecha');
 }
 
 export async function borrarVencimiento(id: string): Promise<EstadoAccion> {

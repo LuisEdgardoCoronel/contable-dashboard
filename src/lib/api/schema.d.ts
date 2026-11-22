@@ -405,6 +405,11 @@ export interface components {
              */
             estado?: "pendiente" | "presentado";
             /**
+             * @description YYYY-MM-DD. Cambia la fecha de vencimiento; `estadoActual` se recalcula con la nueva fecha. No modifica `fechaPresentacion`
+             * @example 2026-12-18
+             */
+            fechaVencimiento?: string;
+            /**
              * @description Solo si el vencimiento queda `presentado`. Default: hoy (Argentina). No puede ser futura
              * @example 2026-11-15
              */
@@ -1173,6 +1178,7 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Vencimiento actualizado, con `estadoActual` recalculado (p. ej. con la nueva `fechaVencimiento`) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1181,7 +1187,7 @@ export interface operations {
                     "application/json": components["schemas"]["VencimientoResponseDto"];
                 };
             };
-            /** @description Datos inválidos */
+            /** @description Datos inválidos (fecha inexistente o con otro formato, campo no editable, fechaPresentacion futura) */
             400: {
                 headers: {
                     [name: string]: unknown;

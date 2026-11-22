@@ -16,7 +16,7 @@ Es el frontend de [contable-api](https://github.com/LuisEdgardoCoronel/contable-
 
 - **Inicio:** tarjetas con clientes activos y vencimientos pendientes, vencidos, presentados y de los próximos 30 días (cada una lleva a su listado), y dos gráficos: vencimientos por mes y por impuesto, con un rango de fechas configurable.
 - **Clientes:** listado paginado con búsqueda por razón social o CUIT y filtro por activos o dados de baja. Alta y edición con validación de CUIT (dígito verificador), baja y reactivación, y creación del acceso de solo lectura para el cliente.
-- **Vencimientos:** listado con pestañas (Vencidos, Pendientes, Próximos 30 días, Presentados, Todos) y su cantidad, filtros por cliente, impuesto y rango de fechas. Alta con el período validado según el impuesto (`AAAA-MM` o `AAAA`), marcado como presentado con fecha, vuelta a pendiente, notas y borrado.
+- **Vencimientos:** listado con pestañas (Vencidos, Pendientes, Próximos 30 días, Presentados, Todos) y su cantidad, filtros por cliente, impuesto y rango de fechas. Alta con el período validado según el impuesto (`AAAA-MM` o `AAAA`), marcado como presentado con fecha (o con la de hoy, desde el mismo listado), vuelta a pendiente, cambio de la fecha de vencimiento, notas y borrado. Los presentados después de su vencimiento se marcan como "Tarde".
 - **Registro e inicio de sesión:** cualquiera puede registrarse y obtiene un estudio vacío. El panel es solo para contadores: un usuario cliente no puede entrar.
 - **Celular y escritorio:** las tablas pasan a tarjetas en pantallas chicas, y la pestaña activa siempre queda a la vista.
 - **Tema claro y oscuro**, según la preferencia del sistema.

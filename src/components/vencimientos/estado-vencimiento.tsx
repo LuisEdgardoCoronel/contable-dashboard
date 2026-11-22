@@ -24,3 +24,16 @@ export function EstadoVencimiento({ estado, 'data-testid': testId }: { estado: E
     </span>
   );
 }
+
+/** Al lado de "Presentado" cuando se presentó después del vencimiento (`presentadoTarde()`). */
+export function PresentadoTarde() {
+  return (
+    <span
+      data-testid="presentado-tarde"
+      title="Presentado después de la fecha de vencimiento"
+      className={cn(badgeVariants({ variant: 'outline' }), 'border-destructive/50 text-destructive')}
+    >
+      Tarde
+    </span>
+  );
+}

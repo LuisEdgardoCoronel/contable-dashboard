@@ -6,6 +6,7 @@ import type {
   EstadoVencimiento,
   Estadisticas,
   Impuesto,
+  Vencimiento,
   VencimientosQuery,
 } from '@/lib/api/types';
 
@@ -22,6 +23,17 @@ export const ESTADO_VENCIMIENTO: Record<EstadoVencimiento, { etiqueta: string; c
   vencido: { etiqueta: 'Vencido', color: 'bg-estado-vencido' },
   presentado: { etiqueta: 'Presentado', color: 'bg-estado-presentado' },
 };
+
+/**
+ * Presentado después de su fecha de vencimiento (suele implicar multas o
+ * intereses). Compara los strings `YYYY-MM-DD`, sin `new Date()`. El mismo día
+ * cuenta como a tiempo.
+ */
+export function presentadoTarde(
+  v: Pick<Vencimiento, 'estadoActual' | 'fechaVencimiento' | 'fechaPresentacion'>,
+): boolean {
+  return v.estadoActual === 'presentado' && v.fechaPresentacion !== null && v.fechaPresentacion > v.fechaVencimiento;
+}
 
 /** `2026-10` → `octubre 2026`; un período anual (`2025`) queda igual. */
 export function formatearPeriodo(periodo: string): string {
@@ -52,6 +64,11 @@ export const VACIO_PESTANA: Record<Pestana, string> = {
   presentado: 'Todavía no hay presentados',
   todos: 'No hay vencimientos',
 };
+
+/** Pestañas donde cada fila tiene "Marcar como presentado" (las de no presentados). */
+export function sePuedePresentarEn(pestana: Pestana): boolean {
+  return pestana === 'vencido' || pestana === 'pendiente' || pestana === 'proximos';
+}
 
 export interface FiltrosVencimientos {
   estado: Pestana;
@@ -178,6 +195,7 @@ export const AVISOS_VENCIMIENTO = {
   presentado: 'Marcado como presentado',
   pendiente: 'Volvió a pendiente',
   notas: 'Notas guardadas',
+  fecha: 'Fecha de vencimiento cambiada',
   borrado: 'Vencimiento borrado',
 } as const;
 export type AvisoVencimiento = keyof typeof AVISOS_VENCIMIENTO;
@@ -188,6 +206,20 @@ export function leerAvisoVencimiento(params: Params): string | undefined {
   return ok && Object.hasOwn(AVISOS_VENCIMIENTO, ok)
     ? AVISOS_VENCIMIENTO[ok as AvisoVencimiento]
     : undefined;
+}
+
+/**
+ * La URL del listado a la que vuelve "Marcar como presentado", con el aviso.
+ * `volverA` lo arma la página, pero viaja por el cliente: se acepta solo una
+ * ruta del listado (`/vencimientos` o `/vencimientos?…`); si no, el listado
+ * por defecto. Un `ok` previo se reemplaza.
+ */
+export function urlConAviso(volverA: string, aviso: AvisoVencimiento): string {
+  const ruta = /^\/vencimientos(\?|$)/.test(volverA) ? volverA : '/vencimientos';
+  const [, qs = ''] = ruta.split('?');
+  const query = new URLSearchParams(qs);
+  query.set('ok', aviso);
+  return `/vencimientos?${query}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +238,7 @@ export const MENSAJES_VENCIMIENTO = {
   periodo: 'Ingresá el período',
   notas: `Las notas pueden tener hasta ${NOTAS_MAX} caracteres`,
   presentacionFutura: 'La fecha de presentación no puede ser futura',
+  noExiste: 'Ese vencimiento ya no existe. Recargá la página',
 } as const;
 
 /** Formato del período según la periodicidad (mismas regex que la API). */
@@ -281,4 +314,9 @@ export function validarPresentacion(fecha: string, hoy: string): string | undefi
   if (!fechaValida(f)) return MENSAJES_VENCIMIENTO.fecha;
   if (f > hoy) return MENSAJES_VENCIMIENTO.presentacionFutura;
   return undefined;
+}
+
+/** La nueva fecha de vencimiento es obligatoria (la columna no admite vacío). */
+export function validarFechaVencimiento(fecha: string): string | undefined {
+  return fechaValida(fecha.trim()) ? undefined : MENSAJES_VENCIMIENTO.fecha;
 }

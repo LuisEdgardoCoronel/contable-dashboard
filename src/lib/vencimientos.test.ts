@@ -11,7 +11,11 @@ import {
   leerAvisoVencimiento,
   leerFiltrosVencimientos,
   MENSAJES_VENCIMIENTO,
+  presentadoTarde,
+  sePuedePresentarEn,
+  urlConAviso,
   urlVencimientos,
+  validarFechaVencimiento,
   validarNotas,
   validarPresentacion,
   validarVencimiento,
@@ -288,5 +292,77 @@ describe('validarNotas y validarPresentacion', () => {
     expect(validarPresentacion('2026-01-05', hoy)).toBeUndefined();
     expect(validarPresentacion('2026-02-30', hoy)).toBe('Ingresá una fecha válida');
     expect(validarPresentacion('2026-11-23', hoy)).toBe('La fecha de presentación no puede ser futura');
+  });
+});
+
+describe('presentadoTarde', () => {
+  const v = (estadoActual: 'pendiente' | 'vencido' | 'presentado', fechaPresentacion: string | null) => ({
+    estadoActual,
+    fechaVencimiento: '2026-10-20',
+    fechaPresentacion,
+  });
+
+  it('presentado después de la fecha de vencimiento: tarde', () => {
+    expect(presentadoTarde(v('presentado', '2026-10-21'))).toBe(true);
+    // Compara como fechas aunque cambie el mes o el año.
+    expect(presentadoTarde({ ...v('presentado', '2027-01-02'), fechaVencimiento: '2026-12-31' })).toBe(true);
+  });
+
+  it('el mismo día o antes: a tiempo', () => {
+    expect(presentadoTarde(v('presentado', '2026-10-20'))).toBe(false);
+    expect(presentadoTarde(v('presentado', '2026-09-30'))).toBe(false);
+  });
+
+  it('sin presentar nunca es tarde', () => {
+    expect(presentadoTarde(v('vencido', null))).toBe(false);
+    expect(presentadoTarde(v('pendiente', null))).toBe(false);
+  });
+});
+
+describe('Marcar como presentado desde el listado', () => {
+  it('solo en las pestañas de no presentados', () => {
+    expect(sePuedePresentarEn('vencido')).toBe(true);
+    expect(sePuedePresentarEn('pendiente')).toBe(true);
+    expect(sePuedePresentarEn('proximos')).toBe(true);
+    expect(sePuedePresentarEn('presentado')).toBe(false);
+    expect(sePuedePresentarEn('todos')).toBe(false);
+  });
+
+  it('urlConAviso conserva pestaña, filtros y página, y agrega el aviso', () => {
+    const volverA = urlVencimientos({ estado: 'vencido', cliente: UUID_CLIENTE, pagina: 2 });
+    expect(urlConAviso(volverA, 'presentado')).toBe(
+      `/vencimientos?estado=vencido&cliente=${UUID_CLIENTE}&pagina=2&ok=presentado`,
+    );
+    expect(urlConAviso('/vencimientos', 'presentado')).toBe('/vencimientos?ok=presentado');
+    expect(leerAvisoVencimiento({ ok: 'presentado' })).toBe('Marcado como presentado');
+  });
+
+  it('urlConAviso reemplaza un ok previo', () => {
+    expect(urlConAviso('/vencimientos?estado=vencido&ok=borrado', 'presentado')).toBe(
+      '/vencimientos?estado=vencido&ok=presentado',
+    );
+  });
+
+  it('urlConAviso no acepta otra ruta: vuelve al listado por defecto', () => {
+    for (const volverA of ['https://evil.com', '//evil.com/vencimientos', '/clientes', '/vencimientos/abc', '/vencimientosx', '']) {
+      expect(urlConAviso(volverA, 'presentado')).toBe('/vencimientos?ok=presentado');
+    }
+  });
+});
+
+describe('validarFechaVencimiento', () => {
+  it('acepta una fecha que existe', () => {
+    expect(validarFechaVencimiento('2026-12-18')).toBeUndefined();
+    expect(validarFechaVencimiento(' 2028-02-29 ')).toBeUndefined();
+  });
+
+  it('vacía, con otro formato o inexistente: error', () => {
+    for (const fecha of ['', '   ', '18/12/2026', '2026-02-30', '2026-13-01']) {
+      expect(validarFechaVencimiento(fecha)).toBe(MENSAJES_VENCIMIENTO.fecha);
+    }
+  });
+
+  it('el aviso del detalle', () => {
+    expect(leerAvisoVencimiento({ ok: 'fecha' })).toBe('Fecha de vencimiento cambiada');
   });
 });

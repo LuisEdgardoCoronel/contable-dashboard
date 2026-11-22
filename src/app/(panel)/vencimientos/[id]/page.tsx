@@ -4,15 +4,22 @@ import type { ReactNode } from 'react';
 import { FormularioAccion } from '@/components/formularios/formulario-accion';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EstadoVencimiento } from '@/components/vencimientos/estado-vencimiento';
+import { EstadoVencimiento, PresentadoTarde } from '@/components/vencimientos/estado-vencimiento';
+import { FormularioFechaVencimiento } from '@/components/vencimientos/formulario-fecha-vencimiento';
 import { FormularioNotas } from '@/components/vencimientos/formulario-notas';
 import { FormularioPresentacion } from '@/components/vencimientos/formulario-presentacion';
 import { obtenerVencimiento } from '@/lib/api/vencimientos';
 import { formatearCuit } from '@/lib/cuit';
 import { formatearFecha, hoyArgentina } from '@/lib/fechas';
-import { ESTADO_VENCIMIENTO, formatearPeriodo, leerAvisoVencimiento } from '@/lib/vencimientos';
+import { ESTADO_VENCIMIENTO, formatearPeriodo, leerAvisoVencimiento, presentadoTarde } from '@/lib/vencimientos';
 
-import { borrarVencimiento, guardarNotas, marcarPresentado, volverAPendiente } from '../actions';
+import {
+  borrarVencimiento,
+  cambiarFechaVencimiento,
+  guardarNotas,
+  marcarPresentado,
+  volverAPendiente,
+} from '../actions';
 
 // Cache Components: cada página del panel lo declara (no se hereda del layout).
 export const instant = false;
@@ -25,9 +32,12 @@ export default async function VencimientoPage({ params, searchParams }: PageProp
   const aviso = leerAvisoVencimiento(query);
   // La confirmación del borrado va por la URL: funciona con y sin JS.
   const confirmarBorrado = query.confirmar === 'borrar';
+  // El cambio de fecha también se abre por la URL (`?editar=fecha`).
+  const editarFecha = query.editar === 'fecha';
   const url = `/vencimientos/${v.id}`;
   const titulo = `${v.impuesto.nombre} · ${formatearPeriodo(v.periodo)}`;
   const presentado = v.estadoActual === 'presentado';
+  const tarde = presentadoTarde(v);
 
   return (
     <section className="flex flex-col gap-6">
@@ -51,6 +61,7 @@ export default async function VencimientoPage({ params, searchParams }: PageProp
         <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold break-words">{titulo}</h1>
           <EstadoVencimiento estado={v.estadoActual} data-testid="estado-vencimiento" />
+          {tarde && <PresentadoTarde />}
         </div>
         {!confirmarBorrado && (
           <Link href={`${url}?confirmar=borrar`} className={buttonVariants({ variant: 'destructive' })}>
@@ -101,7 +112,20 @@ export default async function VencimientoPage({ params, searchParams }: PageProp
             <Dato etiqueta="Impuesto">{v.impuesto.nombre}</Dato>
             <Dato etiqueta="Período">{formatearPeriodo(v.periodo)}</Dato>
             <Dato etiqueta="Fecha de vencimiento">
-              <span className="tabular-nums">{formatearFecha(v.fechaVencimiento)}</span>
+              {editarFecha ? (
+                <FormularioFechaVencimiento
+                  accion={cambiarFechaVencimiento.bind(null, v.id)}
+                  fecha={v.fechaVencimiento}
+                  cancelarHref={url}
+                />
+              ) : (
+                <span className="flex flex-wrap items-baseline gap-x-3">
+                  <span className="tabular-nums">{formatearFecha(v.fechaVencimiento)}</span>
+                  <Link href={`${url}?editar=fecha`} className="text-muted-foreground hover:underline">
+                    Cambiar<span className="sr-only"> la fecha de vencimiento</span>
+                  </Link>
+                </span>
+              )}
             </Dato>
             <Dato etiqueta="Estado">{ESTADO_VENCIMIENTO[v.estadoActual].etiqueta}</Dato>
             <Dato etiqueta="Fecha de presentación">
@@ -130,6 +154,11 @@ export default async function VencimientoPage({ params, searchParams }: PageProp
               <p className="text-sm" data-testid="presentado-el">
                 Presentado el {formatearFecha(v.fechaPresentacion)}
               </p>
+              {tarde && (
+                <p className="text-sm text-destructive" data-testid="presentado-tarde-detalle">
+                  Se presentó después de la fecha de vencimiento ({formatearFecha(v.fechaVencimiento)}).
+                </p>
+              )}
               <FormularioAccion
                 accion={volverAPendiente.bind(null, v.id)}
                 texto="Volver a pendiente"

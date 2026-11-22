@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { formatearFecha } from '../src/lib/fechas';
+import { formatearPeriodo } from '../src/lib/vencimientos';
 
 import { RUTA_SESION_PROPIA } from './env';
 import {
@@ -343,4 +344,212 @@ test('desde el cliente: "Nuevo vencimiento" con el cliente elegido y "Ver vencim
   await page.goto(`/clientes/${deBaja.id}`);
   await expect(page.getByRole('link', { name: 'Ver vencimientos' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Nuevo vencimiento' })).toHaveCount(0);
+});
+
+// ---------------------------------------------------------------------------
+// Marcar como presentado desde el listado, "Tarde" y cambio de la fecha de vencimiento
+
+/** Un vencimiento de IVA para ese cliente, `dias` desde hoy. */
+async function vencimientoIva(cliente: ClienteApi, dias: number, periodo: string): Promise<VencimientoApi> {
+  const iva = await impuestoApi(token(), 'IVA');
+  return crearVencimientoApi(token(), {
+    clienteId: cliente.id,
+    impuestoId: iva.id,
+    fechaVencimiento: fechaRelativa(dias),
+    periodo,
+  });
+}
+
+const presentarApi = (v: VencimientoApi, fechaPresentacion: string) =>
+  api<VencimientoApi>(token(), `/vencimientos/${v.id}`, {
+    method: 'PATCH',
+    body: { estado: 'presentado', fechaPresentacion },
+  });
+
+const leerApi = (v: VencimientoApi) => api<VencimientoApi>(token(), `/vencimientos/${v.id}`);
+
+/** El botón de una fila: su nombre accesible identifica al vencimiento. */
+const botonPresentar = (page: Page, v: VencimientoApi, cliente: ClienteApi) =>
+  page.getByRole('button', {
+    name: `Marcar como presentado (IVA ${formatearPeriodo(v.periodo)}, ${cliente.razonSocial})`,
+    exact: true,
+  });
+
+const todosLosBotones = (page: Page) => page.getByRole('button', { name: /^Marcar como presentado \(/ });
+
+test('marcar como presentado desde Vencidos: "Marcando…", vuelve al mismo listado y queda con la fecha de hoy', async ({
+  page,
+}) => {
+  const cliente = await nuevoCliente('Presentar listado');
+  const primero = await vencimientoIva(cliente, -10, '2026-01');
+  const segundo = await vencimientoIva(cliente, -5, '2026-02');
+  const listado = `/vencimientos?estado=vencido&cliente=${cliente.id}`;
+
+  await page.goto(listado);
+  await expect(filas(page)).toHaveCount(2);
+
+  // Demora la Server Action para ver el estado pendiente del botón.
+  let liberar!: () => void;
+  const demora = new Promise<void>((r) => (liberar = r));
+  await page.route(
+    (url) => url.pathname === '/vencimientos',
+    async (ruta) => {
+      if (ruta.request().method() === 'POST') await demora;
+      await ruta.continue();
+    },
+  );
+
+  await botonPresentar(page, primero, cliente).click();
+  const marcando = page.getByRole('button', { name: /^Marcando…/ });
+  await expect(marcando).toBeVisible();
+  await expect(marcando).toBeDisabled();
+  liberar();
+
+  await expect(page).toHaveURL(`${listado}&ok=presentado`);
+  await expect(aviso(page)).toContainText('Marcado como presentado');
+  await expect(filas(page)).toHaveCount(1);
+  await expect(filas(page).first()).toContainText(formatearPeriodo(segundo.periodo));
+  expect(await leerApi(primero)).toMatchObject({ estadoActual: 'presentado', fechaPresentacion: fechaRelativa(0) });
+  expect((await leerApi(segundo)).estadoActual).toBe('vencido');
+
+  // "Cerrar" saca el aviso y conserva el listado.
+  await aviso(page).getByRole('link', { name: 'Cerrar aviso' }).click();
+  await expect(page).toHaveURL(listado);
+
+  // En Presentados y Todos no hay botón.
+  for (const pestana of ['presentado', 'todos']) {
+    await page.goto(`/vencimientos?estado=${pestana}&cliente=${cliente.id}`);
+    await expect(filas(page).first()).toBeVisible();
+    await expect(todosLosBotones(page)).toHaveCount(0);
+  }
+});
+
+test.describe('sin JavaScript (mejoras)', () => {
+  test.use({ javaScriptEnabled: false });
+
+  // Solo los casos exitosos (ver "Errores de formularios sin JS" en CLAUDE.md).
+  test('"Marcar como presentado" de una fila vuelve al listado con el aviso', async ({ page }) => {
+    const cliente = await nuevoCliente('Presentar sin JS');
+    const v = await vencimientoIva(cliente, 10, '2026-03');
+    const listado = `/vencimientos?cliente=${cliente.id}`;
+
+    await page.goto(listado);
+    await botonPresentar(page, v, cliente).click();
+
+    await expect(page).toHaveURL(`${listado}&ok=presentado`);
+    await expect(aviso(page)).toContainText('Marcado como presentado');
+    await expect(page.getByText('No hay vencimientos con estos filtros')).toBeVisible();
+    expect(await leerApi(v)).toMatchObject({ estadoActual: 'presentado', fechaPresentacion: fechaRelativa(0) });
+  });
+
+  test('cambiar la fecha de vencimiento', async ({ page }) => {
+    const cliente = await nuevoCliente('Fecha sin JS');
+    const v = await vencimientoIva(cliente, -4, '2026-04');
+    const nueva = fechaRelativa(12);
+
+    await page.goto(`/vencimientos/${v.id}`);
+    await page.getByRole('link', { name: 'Cambiar la fecha de vencimiento' }).click();
+    await page.getByLabel('Nueva fecha de vencimiento').fill(nueva);
+    await page.getByRole('button', { name: 'Guardar fecha' }).click();
+
+    await expect(page).toHaveURL(`/vencimientos/${v.id}?ok=fecha`);
+    await expect(aviso(page)).toContainText('Fecha de vencimiento cambiada');
+    await expect(estado(page)).toHaveText('Pendiente');
+    expect(await leerApi(v)).toMatchObject({ fechaVencimiento: nueva, estadoActual: 'pendiente' });
+  });
+});
+
+test.describe('en el celular', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('"Marcar como presentado" desde la tarjeta', async ({ page }) => {
+    const cliente = await nuevoCliente('Presentar celular');
+    const v = await vencimientoIva(cliente, 3, '2026-05');
+    const listado = `/vencimientos?cliente=${cliente.id}`;
+
+    await page.goto(listado);
+    await expect(page.getByRole('table')).toBeHidden();
+    const boton = botonPresentar(page, v, cliente);
+    await expect(boton).toBeInViewport();
+    await boton.click();
+
+    await expect(page).toHaveURL(`${listado}&ok=presentado`);
+    await expect(aviso(page)).toContainText('Marcado como presentado');
+    await expect(boton).toHaveCount(0);
+    expect((await leerApi(v)).estadoActual).toBe('presentado');
+  });
+});
+
+test('"Tarde": en el listado y en el detalle, solo si se presentó después del vencimiento', async ({ page }) => {
+  const cliente = await nuevoCliente('Tarde');
+  const tarde = await presentarApi(await vencimientoIva(cliente, -10, '2026-06'), fechaRelativa(-3));
+  const aTiempo = await presentarApi(await vencimientoIva(cliente, -10, '2026-07'), fechaRelativa(-10));
+
+  await page.goto(`/vencimientos?estado=presentado&cliente=${cliente.id}`);
+  await expect(filas(page)).toHaveCount(2);
+  const fila = (v: VencimientoApi) => filas(page).filter({ hasText: formatearPeriodo(v.periodo) });
+  await expect(fila(tarde).getByTestId('presentado-tarde')).toHaveText('Tarde');
+  await expect(fila(aTiempo).getByTestId('presentado-tarde')).toHaveCount(0);
+
+  const tardeEnDetalle = page.getByTestId('presentado-tarde').filter({ visible: true });
+  await page.goto(`/vencimientos/${tarde.id}`);
+  await expect(estado(page)).toHaveText('Presentado');
+  await expect(tardeEnDetalle).toHaveText('Tarde');
+  await expect(page.getByTestId('presentado-tarde-detalle')).toHaveText(
+    `Se presentó después de la fecha de vencimiento (${formatearFecha(tarde.fechaVencimiento)}).`,
+  );
+
+  await page.goto(`/vencimientos/${aTiempo.id}`);
+  await expect(estado(page)).toHaveText('Presentado');
+  await expect(tardeEnDetalle).toHaveCount(0);
+  await expect(page.getByTestId('presentado-tarde-detalle')).toHaveCount(0);
+});
+
+test('cambiar la fecha de vencimiento: validación, Cancelar, estado recalculado y "Tarde"', async ({ page }) => {
+  const cliente = await nuevoCliente('Cambiar fecha');
+  const v = await vencimientoIva(cliente, -10, '2026-08');
+  const detalle = `/vencimientos/${v.id}`;
+  const campoFecha = page.getByLabel('Nueva fecha de vencimiento');
+  const guardar = page.getByRole('button', { name: 'Guardar fecha' });
+
+  await page.goto(detalle);
+  await expect(estado(page)).toHaveText('Vencido');
+  await page.getByRole('link', { name: 'Cambiar la fecha de vencimiento' }).click();
+  await expect(page).toHaveURL(`${detalle}?editar=fecha`);
+  await expect(campoFecha).toHaveValue(v.fechaVencimiento);
+
+  // Cancelar vuelve al detalle sin tocar nada.
+  await page.getByRole('link', { name: 'Cancelar' }).click();
+  await expect(page).toHaveURL(detalle);
+  await expect(campoFecha).toHaveCount(0);
+
+  // Vacía: error en el campo, sin llamar a la API.
+  await page.goto(`${detalle}?editar=fecha`);
+  await campoFecha.fill('');
+  await guardar.click();
+  await expect(page.locator('#fechaVencimiento-error')).toHaveText('Ingresá una fecha válida');
+  await expect(campoFecha).toHaveAttribute('aria-invalid', 'true');
+  expect((await leerApi(v)).fechaVencimiento).toBe(v.fechaVencimiento);
+
+  // A futuro: el vencido pasa a pendiente (lo recalcula la API).
+  const futura = fechaRelativa(15);
+  await campoFecha.fill(futura);
+  await guardar.click();
+  await expect(page).toHaveURL(`${detalle}?ok=fecha`);
+  await expect(aviso(page)).toContainText('Fecha de vencimiento cambiada');
+  await expect(estado(page)).toHaveText('Pendiente');
+  await expect(datos(page)).toContainText(`Fecha de vencimiento${formatearFecha(futura)}`);
+  expect(await leerApi(v)).toMatchObject({ fechaVencimiento: futura, estadoActual: 'pendiente' });
+
+  // Presentado hoy, a tiempo. Si la fecha de vencimiento pasa a antes, queda "Tarde"
+  // (la API no toca la fecha de presentación).
+  await presentarApi(v, fechaRelativa(0));
+  await page.goto(`${detalle}?editar=fecha`);
+  const pasada = fechaRelativa(-2);
+  await campoFecha.fill(pasada);
+  await guardar.click();
+  await expect(page).toHaveURL(`${detalle}?ok=fecha`);
+  await expect(estado(page)).toHaveText('Presentado');
+  await expect(page.getByTestId('presentado-tarde').filter({ visible: true })).toHaveText('Tarde');
+  expect(await leerApi(v)).toMatchObject({ fechaVencimiento: pasada, fechaPresentacion: fechaRelativa(0) });
 });

@@ -2,6 +2,8 @@
 
 Ideas surgidas al usar el panel. Ninguna es urgente.
 
+**Estado:** las tres están hechas (ver "Decisiones de implementación (mejoras de vencimientos)" en CLAUDE.md). El conteo opcional de "presentados tarde" en `/estadisticas` no se hizo.
+
 ## Vencimientos
 
 ### Marcar como presentado desde el listado
