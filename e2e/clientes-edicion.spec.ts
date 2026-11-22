@@ -134,12 +134,21 @@ test.describe('sin JavaScript', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(razonSocial);
   });
 
-  test('un error de validación se muestra y conserva los valores', async ({ page }) => {
+  // Sin JS no se exige ver el error: en producción, con Cache Components, la
+  // respuesta de la action se arma retomando el shell prerenderizado y React no
+  // recibe el estado de `useActionState` (ver CLAUDE.md). Solo se verifica que un
+  // envío inválido no cree nada y deje al usuario en el alta.
+  test('un envío inválido no crea el cliente y queda en el alta', async ({ page }) => {
+    const razonSocial = `E2E SinJS error ${sufijoUnico()}`;
     await page.goto('/clientes/nuevo');
-    await completarCliente(page, { razonSocial: 'E2E SinJS error', cuit: '123', email: 'x@example.com' });
+    await completarCliente(page, { razonSocial, cuit: '123', email: 'x@example.com' });
+    const respuesta = page.waitForResponse((r) => r.request().method() === 'POST');
     await page.getByRole('button', { name: 'Guardar' }).click();
-    await expect(page.locator('#cuit-error')).toHaveText('El CUIT no es válido');
-    await expect(page.getByLabel('Razón social', { exact: true })).toHaveValue('E2E SinJS error');
+
+    expect((await respuesta).status()).toBe(200);
+    await expect(page).toHaveURL('/clientes/nuevo');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Nuevo cliente');
+    expect(await buscarEnApi(razonSocial)).toHaveLength(0);
   });
 });
 
