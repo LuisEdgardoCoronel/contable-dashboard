@@ -66,3 +66,11 @@ export function MensajeError({ mensaje }: { mensaje?: string }) {
     </p>
   );
 }
+
+/** Clases de un `<textarea>` nativo con el aspecto del `Input` de shadcn. */
+export const claseTextarea = cn(
+  'min-h-24 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground md:text-sm',
+  'focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+  'aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20',
+  'dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40',
+);

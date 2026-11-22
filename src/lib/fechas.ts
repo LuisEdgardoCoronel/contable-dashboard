@@ -58,3 +58,35 @@ export function formatearMesCorto(mes: string | null | undefined): string {
   if (!m || !nombre) return mes;
   return `${nombre.slice(0, 3)} ${m[1]}`;
 }
+
+const DIAS_POR_MES = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
+
+function esBisiesto(anio: number): boolean {
+  return (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0;
+}
+
+/** `true` si es `YYYY-MM-DD` y el día existe (bisiestos incluidos). Misma regla que `IsFecha` de la API. */
+export function fechaValida(fecha: string): boolean {
+  const m = FECHA.exec(fecha);
+  if (!m) return false;
+  const [anio, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (mes < 1 || mes > 12 || dia < 1) return false;
+  const maximo = mes === 2 && esBisiesto(anio) ? 29 : DIAS_POR_MES[mes - 1];
+  return dia <= maximo;
+}
+
+const FORMATO_HOY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Argentina/Buenos_Aires',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/**
+ * Hoy en Argentina como `YYYY-MM-DD` (igual que la API). No parsea fechas de la
+ * API: toma el instante actual y lo formatea en la zona correcta; `en-CA` da el
+ * formato ISO.
+ */
+export function hoyArgentina(): string {
+  return FORMATO_HOY.format(Date.now());
+}

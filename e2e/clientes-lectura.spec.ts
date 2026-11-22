@@ -28,7 +28,7 @@ async function esperarTabla(page: Page, clientes: ClienteApi[]) {
   await expect(filas(page).locator('td:first-child')).toHaveText(clientes.map((c) => c.razonSocial));
 }
 
-test('barra de navegación: link activo, Vencimientos sin link, saludo y Cerrar sesión', async ({
+test('barra de navegación: link activo, Vencimientos como link, saludo y Cerrar sesión', async ({
   page,
 }) => {
   const [cliente] = await clientesDeLaApi({ activo: 'true' });
@@ -47,9 +47,11 @@ test('barra de navegación: link activo, Vencimientos sin link, saludo y Cerrar 
   await page.goto(`/clientes/${cliente.id}`);
   await expect(clientes).toHaveAttribute('aria-current', 'page');
 
-  await expect(nav.getByRole('link', { name: /Vencimientos/ })).toHaveCount(0);
-  await expect(nav.getByText('Vencimientos')).toBeVisible();
-  await expect(nav.locator('[aria-disabled="true"]')).toContainText('Próximamente');
+  // Paso 4: "Vencimientos" ya es un link (el detalle está en vencimientos-lectura.spec).
+  const vencimientos = nav.getByRole('link', { name: 'Vencimientos' });
+  await expect(vencimientos).toHaveAttribute('href', '/vencimientos');
+  await expect(vencimientos).not.toHaveAttribute('aria-current');
+  await expect(nav.getByText('Próximamente')).toHaveCount(0);
 
   const banner = page.getByRole('banner');
   await expect(banner.getByText(`Hola, ${env.E2E_ADMIN_NOMBRE}`)).toBeVisible();

@@ -127,3 +127,51 @@ export function crearClienteApi(
     },
   });
 }
+
+export interface ImpuestoApi {
+  id: string;
+  codigo: string;
+  nombre: string;
+  periodicidad: 'mensual' | 'anual';
+}
+
+export interface VencimientoApi {
+  id: string;
+  clienteId: string;
+  cliente: { id: string; razonSocial: string; cuit: string };
+  impuestoId: string;
+  impuesto: ImpuestoApi;
+  fechaVencimiento: string;
+  periodo: string;
+  estado: 'pendiente' | 'presentado';
+  estadoActual: 'pendiente' | 'presentado' | 'vencido';
+  fechaPresentacion: string | null;
+  notas: string | null;
+}
+
+export function impuestosApi(token: string): Promise<ImpuestoApi[]> {
+  return api<ImpuestoApi[]>(token, '/impuestos');
+}
+
+/** Impuesto del seed por código (`IVA`, `GANANCIAS`, …). */
+export async function impuestoApi(token: string, codigo: string): Promise<ImpuestoApi> {
+  const impuesto = (await impuestosApi(token)).find((i) => i.codigo === codigo);
+  if (!impuesto) throw new Error(`No está el impuesto ${codigo} en GET /impuestos`);
+  return impuesto;
+}
+
+/** Crea un vencimiento por la API, para preparar datos. */
+export function crearVencimientoApi(
+  token: string,
+  datos: { clienteId: string; impuestoId: string; fechaVencimiento: string; periodo: string; notas?: string },
+): Promise<VencimientoApi> {
+  return api<VencimientoApi>(token, '/vencimientos', { method: 'POST', body: datos });
+}
+
+/** `YYYY-MM-DD` a `dias` de hoy en Argentina (negativo = pasado), sin pasar por la zona local. */
+export function fechaRelativa(dias: number): string {
+  const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+  const [a, m, d] = hoy.split('-').map(Number);
+  // Aritmética en UTC sobre la fecha (sin hora): no la corre ninguna zona horaria.
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}

@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils';
 const LINKS = [
   { href: '/', texto: 'Inicio' },
   { href: '/clientes', texto: 'Clientes' },
+  { href: '/vencimientos', texto: 'Vencimientos' },
 ] as const;
 
-/** `/` solo en el Inicio; el resto, también en sus subrutas (`/clientes/…`). */
+/** `/` solo en el Inicio; el resto, también en sus subrutas (`/clientes/…`, `/vencimientos/…`). */
 function estaActivo(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -43,16 +44,6 @@ export function NavLinks() {
           </li>
         );
       })}
-      <li>
-        {/* Paso 4: hasta entonces se ve, pero no es un link. */}
-        <span
-          aria-disabled="true"
-          className={cn(base, 'flex items-center gap-1.5 text-muted-foreground/60')}
-        >
-          Vencimientos
-          <span className="rounded-full border px-1.5 text-[0.65rem] font-normal">Próximamente</span>
-        </span>
-      </li>
     </ul>
   );
 }

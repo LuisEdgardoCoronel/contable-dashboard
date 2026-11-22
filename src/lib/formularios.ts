@@ -10,6 +10,9 @@ export interface EstadoFormulario<C extends string = string> {
   valores?: Partial<Record<C, string>>;
 }
 
+/** Acciones sin campos (baja, reactivación, volver a pendiente, borrado): solo un mensaje general. */
+export type EstadoAccion = Pick<EstadoFormulario, 'mensaje'>;
+
 export const MENSAJES = {
   /** Para los 400 de la API: class-validator puede responder en inglés. */
   revisar: 'Revisá los datos',

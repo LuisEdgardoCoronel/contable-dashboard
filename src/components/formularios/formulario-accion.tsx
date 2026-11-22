@@ -2,12 +2,12 @@
 
 import { useActionState, type ReactNode } from 'react';
 
-import type { EstadoAccion } from '@/app/(panel)/clientes/actions';
 import { MensajeError } from '@/components/formularios/campo';
 import { Button } from '@/components/ui/button';
+import type { EstadoAccion } from '@/lib/formularios';
 
 interface Props {
-  /** `darDeBaja.bind(null, id)` o `reactivarCliente.bind(null, id)`. */
+  /** P. ej. `darDeBaja.bind(null, id)`. */
   accion: (previo: EstadoAccion, formData: FormData) => Promise<EstadoAccion>;
   texto: string;
   textoPendiente: string;

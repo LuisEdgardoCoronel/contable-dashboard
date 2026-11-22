@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { FormularioRango } from '@/components/inicio/formulario-rango';
@@ -15,6 +16,7 @@ import {
 } from '@/lib/estadisticas';
 import { formatearFecha, formatearFechaLarga } from '@/lib/fechas';
 import { cn } from '@/lib/utils';
+import { urlVencimientos } from '@/lib/vencimientos';
 
 // Cache Components: cada página del panel lo declara (no se hereda del layout).
 export const instant = false;
@@ -80,12 +82,16 @@ export default async function InicioPage({ searchParams }: PageProps<'/'>) {
             titulo="Clientes activos"
             valor={clientes.activos}
             detalle={`${clientes.inactivos} ${clientes.inactivos === 1 ? 'dado' : 'dados'} de baja`}
+            href="/clientes"
+            textoLink="Ver clientes"
           />
           <Tarjeta
             id="pendientes"
             titulo={ESTADO_INFO.pendientes.etiqueta}
             valor={vencimientos.pendientes}
             detalle="Sin presentar y todavía en fecha"
+            href={urlVencimientos()}
+            textoLink="Ver pendientes"
             marca="bg-estado-pendiente"
           />
           <Tarjeta
@@ -93,6 +99,8 @@ export default async function InicioPage({ searchParams }: PageProps<'/'>) {
             titulo={ESTADO_INFO.vencidos.etiqueta}
             valor={vencimientos.vencidos}
             detalle="Sin presentar y con la fecha pasada"
+            href={urlVencimientos({ estado: 'vencido' })}
+            textoLink="Ver vencidos"
             marca="bg-estado-vencido"
             // En rojo solo si hay al menos uno; con 0, estilo neutro.
             destacada={vencimientos.vencidos > 0}
@@ -102,6 +110,8 @@ export default async function InicioPage({ searchParams }: PageProps<'/'>) {
             titulo={ESTADO_INFO.presentados.etiqueta}
             valor={vencimientos.presentados}
             detalle="Ya presentados"
+            href={urlVencimientos({ estado: 'presentado' })}
+            textoLink="Ver presentados"
             marca="bg-estado-presentado"
           />
           <Tarjeta
@@ -109,6 +119,8 @@ export default async function InicioPage({ searchParams }: PageProps<'/'>) {
             titulo="Próximos 30 días"
             valor={vencimientos.proximos30Dias}
             detalle="Vencen de hoy a 30 días (clientes activos)"
+            href={urlVencimientos({ estado: 'proximos' })}
+            textoLink="Ver próximos 30 días"
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
@@ -156,6 +168,8 @@ function Tarjeta({
   titulo,
   valor,
   detalle,
+  href,
+  textoLink,
   marca,
   destacada = false,
 }: {
@@ -163,6 +177,10 @@ function Tarjeta({
   titulo: string;
   valor: number;
   detalle: string;
+  /** Toda la tarjeta lleva acá: el link se estira sobre la tarjeta. */
+  href: string;
+  /** Nombre accesible del link, p. ej. "Ver vencidos". */
+  textoLink: string;
   /** Clase de fondo del color del estado (la misma que usan los gráficos). */
   marca?: string;
   destacada?: boolean;
@@ -171,7 +189,12 @@ function Tarjeta({
     <Card
       data-testid={`tarjeta-${id}`}
       data-destacada={destacada || undefined}
-      className={cn(destacada && 'bg-destructive/5 ring-2 ring-destructive/60')}
+      className={cn(
+        'relative transition-colors hover:bg-muted/40',
+        // Foco visible en toda la tarjeta cuando lo tiene su link.
+        'has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/60',
+        destacada && 'bg-destructive/5 ring-2 ring-destructive/60 hover:bg-destructive/10',
+      )}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
@@ -187,6 +210,13 @@ function Tarjeta({
           {valor}
         </span>
         <span className="text-xs text-muted-foreground">{detalle}</span>
+        <Link
+          href={href}
+          className="mt-1 w-fit text-xs font-medium text-muted-foreground underline-offset-4 outline-none after:absolute after:inset-0 hover:underline"
+        >
+          {textoLink}
+          <span aria-hidden> →</span>
+        </Link>
       </CardContent>
     </Card>
   );

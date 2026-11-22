@@ -1,11 +1,12 @@
 import 'server-only';
 
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 
 import { esUuid } from '@/lib/paginacion';
 
 import { ApiError, apiFetch } from './client';
-import type { Cliente } from './types';
+import type { Cliente, Paginado } from './types';
 
 /**
  * `GET /clientes/:id` para las páginas del detalle y la edición. Un id que no es
@@ -21,3 +22,20 @@ export async function obtenerCliente(id: string): Promise<Cliente> {
     throw e;
   }
 }
+
+/** El máximo de `limit` que acepta la API. */
+const LIMITE_API = 100;
+
+/**
+ * Todos los clientes del estudio, activos y dados de baja, para los `<select>`
+ * de vencimientos (el listado incluye vencimientos de clientes dados de baja).
+ * Pide de a 100 y, si hay más, las páginas que falten. Una vez por request.
+ */
+export const todosLosClientes = cache(async (): Promise<Cliente[]> => {
+  const pagina = (page: number) =>
+    apiFetch<Paginado<Cliente>>('/clientes', { query: { page, limit: LIMITE_API } });
+  const primera = await pagina(1);
+  const paginas = Math.ceil(primera.total / LIMITE_API);
+  const resto = await Promise.all(Array.from({ length: Math.max(0, paginas - 1) }, (_, i) => pagina(i + 2)));
+  return [primera, ...resto].flatMap((p) => p.data);
+});

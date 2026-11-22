@@ -14,7 +14,7 @@ import {
   type CampoAcceso,
   type CampoCliente,
 } from '@/lib/clientes';
-import { hayErrores, leerCampos, type EstadoFormulario } from '@/lib/formularios';
+import { hayErrores, leerCampos, type EstadoAccion, type EstadoFormulario } from '@/lib/formularios';
 
 // Server Actions de clientes. Todas usan el token de la cookie (`apiFetch` sin
 // `token`): un 401 redirige al login, y la API filtra por el adminId del token,
@@ -28,8 +28,6 @@ import { hayErrores, leerCampos, type EstadoFormulario } from '@/lib/formularios
 
 export type EstadoCliente = EstadoFormulario<CampoCliente>;
 export type EstadoAcceso = EstadoFormulario<CampoAcceso>;
-/** Baja y reactivación: solo un mensaje general. */
-export type EstadoAccion = Pick<EstadoFormulario, 'mensaje'>;
 
 // 409 de clientes: "Ya existe un cliente con ese CUIT".
 const campo409Cliente = (m: string): CampoCliente | undefined => (/cuit/i.test(m) ? 'cuit' : undefined);

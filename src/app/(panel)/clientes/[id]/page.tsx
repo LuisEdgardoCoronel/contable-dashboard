@@ -3,12 +3,13 @@ import type { ReactNode } from 'react';
 
 import { EstadoBadge } from '@/components/clientes/estado-badge';
 import { FormularioAcceso } from '@/components/clientes/formulario-acceso';
-import { FormularioAccion } from '@/components/clientes/formulario-accion';
+import { FormularioAccion } from '@/components/formularios/formulario-accion';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { obtenerCliente } from '@/lib/api/clientes';
 import { etiquetaCondicionIVA, leerAviso } from '@/lib/clientes';
 import { formatearCuit } from '@/lib/cuit';
+import { urlVencimientos } from '@/lib/vencimientos';
 
 import { crearAcceso, darDeBaja, reactivarCliente } from '../actions';
 
@@ -110,6 +111,31 @@ export default async function ClientePage({ params, searchParams }: PageProps<'/
             <Dato etiqueta="Estado">{cliente.activo ? 'Activo' : 'Dado de baja'}</Dato>
             <Dato etiqueta="Acceso al portal">{cliente.usuarioId ? 'Sí' : 'No'}</Dato>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>Vencimientos</h2>
+          </CardTitle>
+          {!cliente.activo && (
+            <CardDescription>Para cargarle vencimientos nuevos, reactivá el cliente.</CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {/* Pestaña "Todos": para un solo cliente interesa la historia completa. */}
+          <Link
+            href={urlVencimientos({ estado: 'todos', cliente: cliente.id })}
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            Ver vencimientos
+          </Link>
+          {cliente.activo && (
+            <Link href={`/vencimientos/nuevo?cliente=${cliente.id}`} className={buttonVariants()}>
+              Nuevo vencimiento
+            </Link>
+          )}
         </CardContent>
       </Card>
 

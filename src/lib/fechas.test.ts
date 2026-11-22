@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { formatearFecha, formatearFechaLarga, formatearMes, formatearMesCorto } from './fechas';
+import {
+  fechaValida,
+  formatearFecha,
+  formatearFechaLarga,
+  formatearMes,
+  formatearMesCorto,
+  hoyArgentina,
+} from './fechas';
 
 describe('formatearFecha', () => {
   it('formatea YYYY-MM-DD como DD/MM/AAAA', () => {
@@ -59,5 +66,50 @@ describe('formatearMesCorto', () => {
   it('devuelve el valor tal cual si no es YYYY-MM', () => {
     expect(formatearMesCorto('2026-13')).toBe('2026-13');
     expect(formatearMesCorto('')).toBe('');
+  });
+});
+
+describe('fechaValida', () => {
+  it('acepta YYYY-MM-DD con un día que existe', () => {
+    expect(fechaValida('2026-11-05')).toBe(true);
+    expect(fechaValida('2026-12-31')).toBe(true);
+    expect(fechaValida('2026-04-30')).toBe(true);
+  });
+
+  it('rechaza otros formatos', () => {
+    expect(fechaValida('05/11/2026')).toBe(false);
+    expect(fechaValida('2026-1-05')).toBe(false);
+    expect(fechaValida('2026-11-05T00:00:00Z')).toBe(false);
+    expect(fechaValida('')).toBe(false);
+  });
+
+  it('rechaza días y meses que no existen', () => {
+    expect(fechaValida('2026-04-31')).toBe(false);
+    expect(fechaValida('2026-13-01')).toBe(false);
+    expect(fechaValida('2026-00-10')).toBe(false);
+    expect(fechaValida('2026-11-00')).toBe(false);
+  });
+
+  it('29 de febrero solo en años bisiestos', () => {
+    expect(fechaValida('2028-02-29')).toBe(true);
+    expect(fechaValida('2000-02-29')).toBe(true);
+    expect(fechaValida('2026-02-29')).toBe(false);
+    expect(fechaValida('1900-02-29')).toBe(false);
+  });
+});
+
+describe('hoyArgentina', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('usa la zona de Argentina, no UTC: las 2 UTC del 21 son el 20 en Argentina', () => {
+    vi.setSystemTime(new Date('2026-11-21T02:00:00Z'));
+    expect(hoyArgentina()).toBe('2026-11-20');
+  });
+
+  it('a las 3 UTC ya es el día siguiente en Argentina', () => {
+    vi.setSystemTime(new Date('2026-11-21T03:00:00Z'));
+    expect(hoyArgentina()).toBe('2026-11-21');
   });
 });

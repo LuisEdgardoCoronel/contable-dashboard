@@ -99,6 +99,9 @@ test('los gráficos se renderizan con leyenda en texto y tooltip con números', 
   // Hover sobre el último mes: el tooltip muestra el mes completo y los tres números.
   const ultimo = api.porMes.at(-1)!;
   const grafico = page.getByTestId('grafico-por-mes').locator('.recharts-wrapper');
+  // `mouse.move` usa coordenadas de la ventana: el gráfico tiene que estar a la vista
+  // (a 1280×720 su mitad queda debajo del borde).
+  await grafico.scrollIntoViewIfNeeded();
   const caja = (await grafico.boundingBox())!;
   await page.mouse.move(caja.x + caja.width - 30, caja.y + caja.height / 2);
   const tooltip = page.getByTestId('grafico-por-mes').locator('.recharts-tooltip-wrapper');
