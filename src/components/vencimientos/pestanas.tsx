@@ -9,6 +9,8 @@ import {
   type Pestana,
 } from '@/lib/vencimientos';
 
+import { NavPestanas } from './nav-pestanas';
+
 interface Props {
   filtros: FiltrosVencimientos;
   /** Sin conteos (hay otros filtros, o `/estadisticas` falló), las pestañas van sin número. */
@@ -18,11 +20,12 @@ interface Props {
 /**
  * Las cinco pestañas del listado: links comunes (funcionan sin JS). Conservan
  * cliente, impuesto y fechas (salvo "Próximos", que no los acepta) y vuelven a
- * la página 1. En el celular hacen scroll horizontal dentro de su contenedor.
+ * la página 1. En el celular hacen scroll horizontal dentro de su contenedor, y
+ * `NavPestanas` lo mueve para que se vea la activa.
  */
 export function Pestanas({ filtros, conteos }: Props) {
   return (
-    <nav aria-label="Estado" className="-mx-1 overflow-x-auto px-1 pb-1">
+    <NavPestanas activa={filtros.estado}>
       <ul className="flex w-max gap-1 border-b">
         {PESTANAS.map((pestana) => {
           const activa = pestana === filtros.estado;
@@ -52,6 +55,6 @@ export function Pestanas({ filtros, conteos }: Props) {
           );
         })}
       </ul>
-    </nav>
+    </NavPestanas>
   );
 }

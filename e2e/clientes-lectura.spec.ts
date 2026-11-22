@@ -123,7 +123,9 @@ test('el filtro "Dados de baja" muestra el inactivo de demo y no los activos', a
 test('un id inexistente o que no es UUID muestra "Cliente no encontrado"', async ({ page }) => {
   for (const id of [randomUUID(), 'no-es-uuid']) {
     const respuesta = await page.goto(`/clientes/${id}`);
-    expect(respuesta?.status()).toBe(404);
+    // En producción, notFound() llega dentro del stream y la respuesta es 200
+    // (aceptado; ver "Pendiente para el deploy" en CLAUDE.md). En dev, 404.
+    expect(respuesta?.status()).toBe(process.env.E2E_PROD ? 200 : 404);
     await expect(page.getByRole('heading', { name: 'Cliente no encontrado' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Volver a Clientes' })).toHaveAttribute('href', '/clientes');
   }

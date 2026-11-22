@@ -231,7 +231,41 @@ test.describe('en el celular', () => {
     await pestana.scrollIntoViewIfNeeded();
     await expect(pestana).toBeInViewport();
   });
+
+  test('la pestaña activa queda a la vista sin mover la página, al entrar y al cambiar de pestaña', async ({
+    page,
+  }) => {
+    await page.goto('/vencimientos?estado=todos');
+    await expect.poll(() => activaDentroDeLaNav(page)).toBe(true);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+    // Cambio de pestaña sin volver a montar la nav: se vuelve al principio a mano y
+    // se hace click con dispatchEvent, que no hace scroll (click() sí lo haría).
+    await page.getByRole('link', { name: /^Pendientes/ }).click();
+    await expect(page).toHaveURL('/vencimientos');
+    await pestanas(page).evaluate((nav) => (nav.scrollLeft = 0));
+    const todos = pestanas(page).getByRole('link', { name: /^Todos/ });
+    expect(await activaDentroDeLaNav(page, todos)).toBe(false);
+    await todos.dispatchEvent('click');
+    await expect(page).toHaveURL('/vencimientos?estado=todos');
+    await expect(todos).toHaveAttribute('aria-current', 'page');
+    await expect.poll(() => activaDentroDeLaNav(page)).toBe(true);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
 });
+
+test('en el escritorio, la nav de pestañas no se mueve', async ({ page }) => {
+  await page.goto('/vencimientos?estado=todos');
+  await expect(pestanas(page).locator('[aria-current="page"]')).toBeVisible();
+  expect(await pestanas(page).evaluate((nav) => nav.scrollLeft)).toBe(0);
+});
+
+/** Si la pestaña (por defecto, la activa) se ve entera dentro de la nav. */
+async function activaDentroDeLaNav(page: Page, pestana = pestanas(page).locator('[aria-current="page"]')) {
+  const [nav, link] = await Promise.all([pestanas(page).boundingBox(), pestana.boundingBox()]);
+  if (!nav || !link) return false;
+  return link.x >= nav.x - 0.5 && link.x + link.width <= nav.x + nav.width + 0.5;
+}
 
 test('tarjetas del Inicio: cada una lleva a su destino y coincide con el listado', async ({ page }) => {
   const c = await conteosApi();
